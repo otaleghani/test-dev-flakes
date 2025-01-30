@@ -1,49 +1,22 @@
-# {
-#   inputs = {
-#     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-#   };
-#   outputs = { self, nixpkgs }:
-#     let
-#       # define system once
-#       system = "x86_64-linux";
-#       # use it here, and bind platform-specific packages to `pkgs`
-#       pkgs = nixpkgs.legacyPackages.${system};
-#     in
-#     {
-#       # we can use `${system}` here!
-#       packages.${system}.default = derivation {
-#         name = "simple";
-#         # with `with`, we can just do `bash`
-#         builder = with pkgs; "${bash}/bin/bash";
-#         args = [ "-c" "echo foo > $out" ];
-#         src = ./.;
-#         system = system;
-#       };
-#     };
-# }
-
 {
   description = "Testing out flakes for development environment";
+  
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    flake-tmux.url = "github:otaleghani/flake-tmux";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, flake-tmux }@inputs:
   let
     system = "x86_64-linux";
-    pkgs = nixpkgs.legacyPackages.${system};
+    pkgs = import nixpkgs { inherit system; };
+    # flake = import flake-tmux { inherit default; };
   in
   {
-    devShells.${system}.default =
-      pkgs.mkShell {
-        buildInputs = [
-          pkgs.neovim
-          pkgs.tmux
-        ];
-
-        shellHook = ''
-          echo "hello mom"
-        '';
-      };
+    packages.${system}.default = pkgs.mkShell {
+      # packages = [ pkgs.tmux ];
+      inputsFrom = [ inputs.flake-tmux.devShells.${system}.default ];
+      
+    };
   };
 }
